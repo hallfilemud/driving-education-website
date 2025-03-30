@@ -10,12 +10,6 @@ npx vite build
 # Make sure dist directory exists
 mkdir -p dist
 
-# Copy static assets from dist to a public folder in our server directory
-echo "Copying static assets..."
-mkdir -p dist/public
-cp -r dist/*.* dist/public/
-cp -r dist/assets dist/public/
-
 # Create a completely standalone production server
 echo "Creating production server..."
 cat > dist/server.js << 'EOL'
@@ -39,45 +33,22 @@ app.use((req, res, next) => {
   next();
 });
 
-// Handle errors
-app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).send('Something broke!');
-});
-
 // API routes - minimal set for production
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', env: process.env.NODE_ENV });
 });
 
-// List out files in the public directory for debugging
-console.log("Contents of public directory:");
-const publicPath = path.resolve(__dirname, "public");
-try {
-  if (fs.existsSync(publicPath)) {
-    fs.readdirSync(publicPath).forEach(file => {
-      console.log(file);
-    });
-  } else {
-    console.log("Public directory doesn't exist");
-  }
-} catch (err) {
-  console.error("Error listing directory:", err);
+// Serve static files
+const staticPath = path.resolve(__dirname, "public");
+if (!fs.existsSync(staticPath)) {
+  throw new Error("Could not find the static files directory");
 }
 
-// Serve static files
-app.use(express.static(publicPath));
+app.use(express.static(staticPath));
 
 // Fall through to index.html for SPA routing
 app.use("*", (req, res) => {
-  const indexPath = path.join(publicPath, "index.html");
-  
-  if (fs.existsSync(indexPath)) {
-    res.sendFile(indexPath);
-  } else {
-    console.error("Error: index.html not found at path:", indexPath);
-    res.status(404).send("index.html not found. Public path: " + publicPath);
-  }
+  res.sendFile(path.resolve(staticPath, "index.html"));
 });
 
 // Start the server
@@ -96,9 +67,6 @@ cat > dist/package.json << 'EOL'
   "type": "module",
   "dependencies": {
     "express": "^4.21.2"
-  },
-  "engines": {
-    "node": ">=16"
   }
 }
 EOL
