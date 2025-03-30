@@ -35,9 +35,10 @@ A comprehensive driving education platform designed to help users prepare for th
    - **Region**: Choose the region closest to your users
    - **Branch**: main (or your default branch)
 
-5. **Set the Build and Start Commands**
+5. **Set the Build and Start Commands - IMPORTANT**
    - **Build Command**: `chmod +x ./deploy.sh && ./deploy.sh`
-   - **Start Command**: Leave empty (the deploy.sh script handles this)
+   - **Start Command**: `node dist/index.js`
+   - This separation is crucial - the deploy.sh script builds the app, and the start command runs it
 
 6. **Configure Environment Variables**
    - Add `PORT`: `10000` (or any port Render supports)
