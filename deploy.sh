@@ -7,6 +7,9 @@ npm install --include=dev
 echo "Building client-side application..."
 npx vite build
 
+# Make sure dist directory exists
+mkdir -p dist
+
 # Create a completely standalone production server
 echo "Creating production server..."
 cat > dist/server.js << 'EOL'
@@ -68,14 +71,14 @@ cat > dist/package.json << 'EOL'
 }
 EOL
 
-# Install only express in the dist folder
-echo "Installing production dependencies..."
-cd dist && npm install
-
-# Create a startup script
+# Create a startup script first, before changing directories
 echo "Creating startup script..."
 cat > dist/index.js << 'EOL'
 import "./server.js";
 EOL
+
+# Install only express in the dist folder
+echo "Installing production dependencies..."
+cd dist && npm install
 
 # This script is only for building - Render will use the start command separately
