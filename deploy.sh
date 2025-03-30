@@ -7,17 +7,75 @@ npm install --include=dev
 echo "Building client-side application..."
 npx vite build
 
-# Build the server using our production-specific entry point
-echo "Building server-side application..."
-npx esbuild server/prod.ts --platform=node --packages=external --bundle --format=esm --outfile=dist/index.js
+# Create a completely standalone production server
+echo "Creating production server..."
+cat > dist/server.js << 'EOL'
+import express from "express";
+import { createServer } from "http";
+import path from "path";
+import fs from "fs";
+import { dirname } from "path";
+import { fileURLToPath } from "url";
 
-# Create a production package.json without devDependencies
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+const app = express();
+app.use(express.json());
+app.use(express.urlencoded({ extended: false }));
+
+// Simple logging middleware
+app.use((req, res, next) => {
+  console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
+  next();
+});
+
+// API routes - minimal set for production
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'ok', env: process.env.NODE_ENV });
+});
+
+// Serve static files
+const staticPath = path.resolve(__dirname, "public");
+if (!fs.existsSync(staticPath)) {
+  throw new Error("Could not find the static files directory");
+}
+
+app.use(express.static(staticPath));
+
+// Fall through to index.html for SPA routing
+app.use("*", (req, res) => {
+  res.sendFile(path.resolve(staticPath, "index.html"));
+});
+
+// Start the server
+const port = process.env.PORT || 5000;
+createServer(app).listen(port, "0.0.0.0", () => {
+  console.log(`Server running on port ${port}`);
+});
+EOL
+
+# Create a minimal production package.json
 echo "Creating production package.json..."
-node -e "const pkg = require('./package.json'); delete pkg.devDependencies; require('fs').writeFileSync('dist/package.json', JSON.stringify(pkg, null, 2));"
+cat > dist/package.json << 'EOL'
+{
+  "name": "driving-education-site",
+  "version": "1.0.0",
+  "type": "module",
+  "dependencies": {
+    "express": "^4.21.2"
+  }
+}
+EOL
 
-# Clean up node_modules to save space
-echo "Cleaning up development dependencies..."
-rm -rf node_modules
-npm install --production --prefix dist
+# Install only express in the dist folder
+echo "Installing production dependencies..."
+cd dist && npm install
+
+# Create a startup script
+echo "Creating startup script..."
+cat > dist/index.js << 'EOL'
+import "./server.js";
+EOL
 
 # This script is only for building - Render will use the start command separately
