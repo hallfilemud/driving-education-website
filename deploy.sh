@@ -7,9 +7,9 @@ npm install --include=dev
 echo "Building client-side application..."
 npx vite build
 
-# Build the server
+# Build the server using our production-specific entry point
 echo "Building server-side application..."
-npx esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist
+npx esbuild server/prod.ts --platform=node --packages=external --bundle --format=esm --outfile=dist/index.js
 
 # Create a production package.json without devDependencies
 echo "Creating production package.json..."
